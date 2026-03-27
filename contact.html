@@ -3,13 +3,17 @@
 <head>
 <title>Contact - Study Buddy</title>
 
+<!-- 🌟 FONT -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
 <style>
 body{
 margin:0;
-font-family:Arial;
+font-family:'Poppins', sans-serif;
 background:#f5f5f5;
 }
 
+/* HEADER */
 header{
 background:#0f172a;
 color:white;
@@ -27,20 +31,58 @@ nav a{
 color:white;
 margin:0 15px;
 text-decoration:none;
+font-weight:500;
 }
 
+/* 🌟 HERO */
+.hero{
+background:linear-gradient(to right, #1e293b, #3b82f6);
+color:white;
+text-align:center;
+padding:80px 20px;
+}
+
+.hero h1{
+font-size:45px;
+margin:0;
+}
+
+.hero p{
+margin-top:10px;
+font-size:18px;
+}
+
+/* 🌟 CARD */
 .container{
-padding:80px;
+background:white;
+max-width:500px;
+margin:50px auto;
+padding:40px;
+border-radius:15px;
+box-shadow:0 8px 20px rgba(0,0,0,0.1);
 text-align:center;
 }
 
+/* EMAIL */
+.email{
+display:inline-block;
+margin-top:10px;
+background:#e0f2fe;
+padding:10px 15px;
+border-radius:8px;
+font-weight:bold;
+color:#0369a1;
+}
+
+/* BUTTONS */
 button{
-padding:12px 25px;
+padding:12px 20px;
 margin:10px;
 border:none;
 border-radius:8px;
 cursor:pointer;
-font-size:16px;
+font-size:15px;
+transition:0.3s;
 }
 
 .ask-btn{
@@ -48,9 +90,17 @@ background:#3b82f6;
 color:white;
 }
 
+.ask-btn:hover{
+background:#2563eb;
+}
+
 .feedback-btn{
 background:#22c55e;
 color:white;
+}
+
+.feedback-btn:hover{
+background:#16a34a;
 }
 
 .bad-btn{
@@ -58,6 +108,11 @@ background:#ef4444;
 color:white;
 }
 
+.bad-btn:hover{
+background:#dc2626;
+}
+
+/* MESSAGE */
 #message{
 margin-top:20px;
 font-weight:bold;
@@ -80,12 +135,16 @@ font-weight:bold;
 </nav>
 </header>
 
+<!-- 🌟 HERO -->
+<section class="hero">
+<h1>Contact Us!</h1>
+<p>We'd love to hear from you </p>
+</section>
+
 <div class="container">
 
-<h1>Contact Us</h1>
-
 <p>Email us at:</p>
-<b>tziying30@renaissance.edu.vn</b>
+<div class="email">tziying30@renaissance.edu.vn</div>
 
 <br><br>
 
@@ -93,8 +152,8 @@ font-weight:bold;
 <button class="ask-btn" onclick="askQuestion()">Ask a Question</button>
 
 <h2>Do you like this website?</h2>
-<button class="feedback-btn" onclick="feedback('good')"> Yes</button>
-<button class="bad-btn" onclick="feedback('bad')"> No</button>
+<button class="feedback-btn" onclick="feedback('good')">Yes</button>
+<button class="bad-btn" onclick="feedback('bad')">No</button>
 
 <p id="message"></p>
 
