@@ -98,6 +98,7 @@ color:white;
 border-radius:8px;
 cursor:pointer;
 margin-top:10px;
+display:none; /* 🔒 hidden */
 }
 
 /* 🌟 VOLUNTEER LIST */
@@ -189,7 +190,13 @@ font-size:12px;
 </select>
 
 <button class="signup-btn" onclick="addVolunteer()">Sign Up</button>
-<button class="reset-btn" onclick="clearVolunteers()">Reset Week</button>
+
+<!-- 🔒 PASSWORD BOX -->
+<input type="password" id="adminPass" placeholder="Enter admin code">
+<button onclick="checkPassword()">Enter</button>
+
+<!-- 🔒 HIDDEN RESET BUTTON -->
+<button class="reset-btn" id="resetBtn" onclick="clearVolunteers()">Reset Week</button>
 
 </div>
 
@@ -255,6 +262,18 @@ if(confirm("Clear all volunteers?")) {
 localStorage.removeItem("studyBuddyVolunteers");
 displayVolunteers();
 }
+}
+
+// 🔒 CHECK PASSWORD
+function checkPassword(){
+  let input = document.getElementById("adminPass").value;
+
+  if(input === "alice123"){
+    document.getElementById("resetBtn").style.display = "block";
+    alert("Access granted");
+  } else {
+    alert("Wrong password");
+  }
 }
 
 </script>
