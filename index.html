@@ -155,7 +155,12 @@ font-weight:bold;
 
 <p id="message"></p>
 
-<button onclick="resetBookings()" style="margin-top:20px;">Reset Bookings</button>
+<!-- 🔒 ADMIN PASSWORD BOX -->
+<input type="password" id="adminPass" placeholder="Enter admin code">
+<button onclick="checkPassword()">Enter</button>
+
+<!-- 🔒 HIDDEN RESET BUTTON -->
+<button id="resetBtn" onclick="resetBookings()" style="margin-top:20px; display:none;">Reset Bookings</button>
 
 </section>
 
@@ -264,6 +269,18 @@ cell.classList.add("booked");
 saveBookings();
 }
 
+}
+
+// 🔒 CHECK PASSWORD
+function checkPassword(){
+  let input = document.getElementById("adminPass").value;
+
+  if(input === "alice123"){
+    document.getElementById("resetBtn").style.display = "block";
+    alert("Access granted");
+  } else {
+    alert("Wrong password");
+  }
 }
 
 </script>
