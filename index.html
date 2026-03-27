@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Study Buddy Portal</title>
+
+<!-- 🌟 Pretty Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+margin:0;
+font-family:'Poppins', sans-serif;
+background:#f5f5f5;
+}
+
+/* HEADER */
+header{
+background:#0f172a;
+color:white;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:20px 60px;
+}
+
+.logo img{
+height:50px;
+}
+
+nav a{
+color:white;
+margin:0 15px;
+text-decoration:none;
+font-weight:500;
+}
+
+/* 🌟 HERO (UPGRADED) */
+.hero{
+background:linear-gradient(to right, #1e293b, #3b82f6);
+color:white;
+text-align:center;
+padding:100px 20px;
+}
+
+.hero h1{
+font-size:50px;
+margin:0;
+letter-spacing:2px;
+}
+
+.hero p{
+margin-top:10px;
+font-size:18px;
+}
+
+/* TABLE */
+.booking-section{
+background:white;
+padding:60px;
+text-align:center;
+}
+
+table{
+margin:auto;
+border-collapse:collapse;
+}
+
+td, th{
+padding:20px;
+border:1px solid #ddd;
+width:140px;
+}
+
+.slot{
+background:#22c55e;
+color:white;
+cursor:pointer;
+border-radius:8px;
+}
+
+/* 🔵 volunteer available */
+.available{
+background:#3b82f6;
+}
+
+/* 🔴 booked */
+.booked{
+background:#ef4444;
+color:white;
+}
+
+/* MESSAGE */
+#message{
+margin-top:20px;
+font-weight:bold;
+}
+</style>
+</head>
+
+<body onload="loadBookings(); highlightAvailable(); updateBookingsWithVolunteers();">
+
+<header>
+<div class="logo">
+<img src="logo.png">
+</div>
+
+<nav>
+<a href="about.html">About</a>
+<a href="index.html">Home</a>
+<a href="page2.html">Volunteer</a>
+<a href="contact.html">Contact</a>
+</nav>
+</header>
+
+<!-- 🌟 HERO -->
+<section class="hero">
+<h1>Study Buddy Portal</h1>
+<p>Book a peer study session during break time </p>
+</section>
+
+<section class="booking-section">
+
+<h2>Book a Study Session</h2>
+
+<table>
+
+<tr>
+<th>Time</th>
+<th>Monday</th>
+<th>Tuesday</th>
+<th>Wednesday</th>
+<th>Thursday</th>
+<th>Friday</th>
+</tr>
+
+<tr>
+<th>10:00-10:30</th>
+<td class="slot" onclick="book(this,'Monday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Tuesday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Wednesday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Thursday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Friday','10:00-10:30')"></td>
+</tr>
+
+<tr>
+<th>1:00-1:30</th>
+<td class="slot" onclick="book(this,'Monday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Tuesday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Wednesday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Thursday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Friday','1:00-1:30')"></td>
+</tr>
+
+</table>
+
+<p id="message"></p>
+
+<button onclick="resetBookings()" style="margin-top:20px;">Reset Bookings</button>
+
+</section>
+
+<script>
+
+// SAVE
+function saveBookings(){
+let data = [];
+document.querySelectorAll("td").forEach(cell=>{
+data.push(cell.innerHTML);
+});
+localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
+}
+
+// LOAD
+function loadBookings(){
+let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
+let cells = document.querySelectorAll("td");
+
+cells.forEach((cell,index)=>{
+if(data[index]){
+cell.innerHTML = data[index];
+cell.classList.remove("slot");
+cell.classList.add("booked");
+}
+});
+}
+
+// RESET
+function resetBookings(){
+localStorage.removeItem("studyBuddyBookings");
+location.reload();
+}
+
+// 🔵 SHOW AVAILABLE VOLUNTEERS
+function highlightAvailable(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.slot").forEach(cell=>{
+let onclick = cell.getAttribute("onclick");
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+
+let day = parts[1];
+let time = parts[2];
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.classList.add("available");
+}
+});
+}
+
+// 🔥 UPDATE OLD BOOKINGS
+function updateBookingsWithVolunteers(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.booked").forEach(cell=>{
+
+if(cell.innerHTML.includes("No volunteer available")){
+
+let onclick = cell.getAttribute("onclick");
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+
+let day = parts[1];
+let time = parts[2];
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + match.name);
+saveBookings();
+}
+}
+
+});
+}
+
+// BOOK
+function book(cell,day,time){
+
+if(cell.classList.contains("booked")){
+document.getElementById("message").innerText = "This slot is already booked";
+return;
+}
+
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+let name = prompt("Enter your name and class");
+let subject = prompt("Enter subject");
+
+if(name){
+
+if(match){
+cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
+document.getElementById("message").innerText = "Matched with " + match.name;
+}else{
+cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
+document.getElementById("message").innerText = "No volunteer available";
+}
+
+cell.classList.remove("slot");
+cell.classList.add("booked");
+
+saveBookings();
+}
+
+}
+
+</script>
+
+</body>
+</html>
