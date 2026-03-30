@@ -97,7 +97,7 @@ font-weight:bold;
 </style>
 </head>
 
-<body onload="loadBookings();">
+<body onload="loadBookings(); highlightAvailable(); updateBookingsWithVolunteers();">
 
 <header>
 <div class="logo">
@@ -156,7 +156,7 @@ font-weight:bold;
 <p id="message"></p>
 
 <!-- 🔒 ADMIN PASSWORD BOX -->
-<input type="password" id="adminPass" placeholder="Enter admin code">
+<input type="password" id="adminPass" placeholder="Enter code">
 <button onclick="checkPassword()">Enter</button>
 
 <!-- 🔒 HIDDEN RESET BUTTON -->
@@ -164,87 +164,117 @@ font-weight:bold;
 
 </section>
 
-<!-- 🌟 Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-// ----------------- SUPABASE CONNECTION -----------------
-const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ----------------- LOAD BOOKINGS -----------------
-async function loadBookings(){
-  const { data, error } = await supabase.from("bookings").select("*");
-
-  const cells = document.querySelectorAll("td");
-
-  // Reset all cells first
-  cells.forEach(cell => {
-    cell.innerHTML = "";
-    cell.classList.add("slot");
-    cell.classList.remove("booked");
-  });
-
-  if(error){
-    console.log("Error loading bookings:", error);
-    return;
-  }
-
-  // Fill cells with bookings
-  data.forEach(booking => {
-    cells.forEach(cell => {
-      let onclick = cell.getAttribute("onclick");
-      if(onclick && onclick.includes("'" + booking.day + "','" + booking.time + "'")){
-        cell.innerHTML = booking.name + "<br>" + booking.subject + "<br>" +
-                         (booking.helper ? "<b>Helper: " + booking.helper + "</b>" : "<b>No volunteer available</b>");
-        cell.classList.remove("slot");
-        cell.classList.add("booked");
-      }
-    });
-  });
+// SAVE
+function saveBookings(){
+let data = [];
+document.querySelectorAll("td").forEach(cell=>{
+data.push(cell.innerHTML);
+});
+localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
 }
 
-// ----------------- SAVE BOOKING -----------------
-async function saveBooking(day, time, name, subject, helper){
-  const { data, error } = await supabase.from("bookings").insert([{ day, time, name, subject, helper }]);
-  if(error) console.log("Error saving:", error);
+// LOAD
+function loadBookings(){
+let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
+let cells = document.querySelectorAll("td");
+
+cells.forEach((cell,index)=>{
+if(data[index]){
+cell.innerHTML = data[index];
+cell.classList.remove("slot");
+cell.classList.add("booked");
+}
+});
 }
 
-// ----------------- BOOK SLOT -----------------
-async function book(cell, day, time){
-  if(cell.classList.contains("booked")){
-    document.getElementById("message").innerText = "This slot is already booked";
-    return;
-  }
-
-  let name = prompt("Enter your name and class");
-  let subject = prompt("Enter subject");
-
-  if(name){
-    let helper = null; // you can add volunteer matching later
-
-    cell.innerHTML = name + "<br>" + subject + "<br>" +
-                     "<b>" + (helper ? "Helper: " + helper : "No volunteer available") + "</b>";
-    cell.classList.remove("slot");
-    cell.classList.add("booked");
-
-    document.getElementById("message").innerText = helper ? "Matched with " + helper : "No volunteer available";
-
-    await saveBooking(day, time, name, subject, helper);
-  }
+// RESET
+function resetBookings(){
+localStorage.removeItem("studyBuddyBookings");
+location.reload();
 }
 
-// ----------------- RESET BOOKINGS -----------------
-async function resetBookings(){
-  const { error } = await supabase.from("bookings").delete().neq('id', 0);
-  if(error) console.log("Error resetting:", error);
-  location.reload();
+// 🔵 SHOW AVAILABLE VOLUNTEERS
+function highlightAvailable(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.slot").forEach(cell=>{
+let onclick = cell.getAttribute("onclick");
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+
+let day = parts[1];
+let time = parts[2];
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.classList.add("available");
+}
+});
 }
 
-// ----------------- CHECK ADMIN PASSWORD -----------------
+// 🔥 UPDATE OLD BOOKINGS
+function updateBookingsWithVolunteers(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.booked").forEach(cell=>{
+
+if(cell.innerHTML.includes("No volunteer available")){
+
+let onclick = cell.getAttribute("onclick");
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+
+let day = parts[1];
+let time = parts[2];
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + match.name);
+saveBookings();
+}
+}
+
+});
+}
+
+// BOOK
+function book(cell,day,time){
+
+if(cell.classList.contains("booked")){
+document.getElementById("message").innerText = "This slot is already booked";
+return;
+}
+
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+let name = prompt("Enter your name and class");
+let subject = prompt("Enter subject");
+
+if(name){
+
+if(match){
+cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
+document.getElementById("message").innerText = "Matched with " + match.name;
+}else{
+cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
+document.getElementById("message").innerText = "No volunteer available";
+}
+
+cell.classList.remove("slot");
+cell.classList.add("booked");
+
+saveBookings();
+}
+
+}
+
+// 🔒 CHECK PASSWORD
 function checkPassword(){
   let input = document.getElementById("adminPass").value;
+
   if(input === "alice123"){
     document.getElementById("resetBtn").style.display = "block";
     alert("Access granted");
@@ -252,6 +282,7 @@ function checkPassword(){
     alert("Wrong password");
   }
 }
+
 </script>
 
 </body>
