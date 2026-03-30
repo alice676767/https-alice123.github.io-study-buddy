@@ -149,7 +149,7 @@ font-size:12px;
 
 </head>
 
-<body onload="displayVolunteers()">
+<body>
 
 <header>
 <div class="logo">
@@ -196,77 +196,77 @@ font-size:12px;
 <!-- 🌟 LIST -->
 <div id="list"></div>
 
-<!-- 🔗 Supabase script -->
+<!-- 🌟 SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-// Supabase connection
-const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Supabase init
+  const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
+  window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-<script>
+  // LOAD volunteers
+  function displayVolunteers() {
+    let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+    let listDiv = document.getElementById("list");
+    listDiv.innerHTML = ""; 
 
-// LOAD volunteers
-function displayVolunteers() {
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-let listDiv = document.getElementById("list");
-listDiv.innerHTML = ""; 
+    volunteers.forEach((v,index) => {
+      let card = document.createElement("div");
+      card.className = "card";
 
-volunteers.forEach((v,index) => {
-let card = document.createElement("div");
-card.className = "card";
+      card.innerHTML = `
+      <b>${v.name}</b>
+      <br>
+      <span class="badge">${v.day} • ${v.time}</span>
+      <br>
+      <button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
+      `;
 
-card.innerHTML = `
-<b>${v.name}</b>
-<br>
-<span class="badge">${v.day} • ${v.time}</span>
-<br>
-<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
-`;
+      listDiv.appendChild(card);
+    });
+  }
 
-listDiv.appendChild(card);
+  // ADD volunteer
+  window.addVolunteer = function(){
+    let name = document.getElementById("name").value;
+    let day = document.getElementById("day").value;
+    let time = document.getElementById("time").value;
+
+    if(name === ""){
+      alert("Please enter your name");
+      return;
+    }
+
+    let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+    volunteers.push({ name: name, day: day, time: time });
+
+    localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
+    displayVolunteers();
+    document.getElementById("name").value = "";
+  }
+
+  // REMOVE volunteer
+  window.removeVolunteer = function(index){
+    let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+    volunteers.splice(index,1);
+    localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+    displayVolunteers();
+  }
+
+  // CLEAR
+  window.clearVolunteers = function() {
+    if(confirm("Clear all volunteers?")) {
+      localStorage.removeItem("studyBuddyVolunteers");
+      displayVolunteers();
+    }
+  }
+
+  // initial load
+  displayVolunteers();
 });
-}
-
-// ADD volunteer
-function addVolunteer(){
-let name = document.getElementById("name").value;
-let day = document.getElementById("day").value;
-let time = document.getElementById("time").value;
-
-if(name === ""){
-alert("Please enter your name");
-return;
-}
-
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-
-volunteers.push({ name: name, day: day, time: time });
-
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
-
-displayVolunteers();
-document.getElementById("name").value = "";
-}
-
-// REMOVE
-function removeVolunteer(index){
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-volunteers.splice(index,1);
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
-displayVolunteers();
-}
-
-// CLEAR
-function clearVolunteers() {
-if(confirm("Clear all volunteers?")) {
-localStorage.removeItem("studyBuddyVolunteers");
-displayVolunteers();
-}
-}
-
 </script>
 
 </body>
