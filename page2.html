@@ -98,7 +98,6 @@ color:white;
 border-radius:8px;
 cursor:pointer;
 margin-top:10px;
-display:none; /* 🔒 hidden */
 }
 
 /* 🌟 VOLUNTEER LIST */
@@ -190,100 +189,84 @@ font-size:12px;
 </select>
 
 <button class="signup-btn" onclick="addVolunteer()">Sign Up</button>
-
-<!-- 🔒 PASSWORD BOX -->
-<input type="password" id="adminPass" placeholder="Enter admin code">
-<button onclick="checkPassword()">Enter</button>
-
-<!-- 🔒 HIDDEN RESET BUTTON -->
-<button class="reset-btn" id="resetBtn" onclick="clearVolunteers()">Reset Week</button>
+<button class="reset-btn" onclick="clearVolunteers()">Reset Week</button>
 
 </div>
 
 <!-- 🌟 LIST -->
 <div id="list"></div>
 
-<!-- 🌟 Supabase JS -->
+<!-- 🔗 Supabase script -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// ----------------- SUPABASE CONNECTION -----------------
+// Supabase connection
 const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
 
-// ----------------- DISPLAY VOLUNTEERS -----------------
-async function displayVolunteers(){
-  const { data, error } = await supabase.from("volunteers").select("*").order('id', { ascending: true });
-  const listDiv = document.getElementById("list");
-  listDiv.innerHTML = "";
+<script>
 
-  if(error){
-    console.log("Error loading volunteers:", error);
-    return;
-  }
+// LOAD volunteers
+function displayVolunteers() {
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+let listDiv = document.getElementById("list");
+listDiv.innerHTML = ""; 
 
-  data.forEach((v,index) => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <b>${v.name}</b>
-      <br>
-      <span class="badge">${v.day} • ${v.time}</span>
-      <br>
-      <button class="remove-btn" onclick="removeVolunteer(${v.id})">Remove</button>
-    `;
-    listDiv.appendChild(card);
-  });
+volunteers.forEach((v,index) => {
+let card = document.createElement("div");
+card.className = "card";
+
+card.innerHTML = `
+<b>${v.name}</b>
+<br>
+<span class="badge">${v.day} • ${v.time}</span>
+<br>
+<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
+`;
+
+listDiv.appendChild(card);
+});
 }
 
-// ----------------- ADD VOLUNTEER -----------------
-async function addVolunteer(){
-  const name = document.getElementById("name").value;
-  const day = document.getElementById("day").value;
-  const time = document.getElementById("time").value;
+// ADD volunteer
+function addVolunteer(){
+let name = document.getElementById("name").value;
+let day = document.getElementById("day").value;
+let time = document.getElementById("time").value;
 
-  if(name === ""){
-    alert("Please enter your name");
-    return;
-  }
-
-  const { data, error } = await supabase.from("volunteers").insert([{ name, day, time }]);
-  if(error){
-    console.log("Error adding volunteer:", error);
-    return;
-  }
-
-  document.getElementById("name").value = "";
-  displayVolunteers();
+if(name === ""){
+alert("Please enter your name");
+return;
 }
 
-// ----------------- REMOVE VOLUNTEER -----------------
-async function removeVolunteer(id){
-  const { error } = await supabase.from("volunteers").delete().eq('id', id);
-  if(error) console.log("Error removing volunteer:", error);
-  displayVolunteers();
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+volunteers.push({ name: name, day: day, time: time });
+
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
+displayVolunteers();
+document.getElementById("name").value = "";
 }
 
-// ----------------- CLEAR VOLUNTEERS -----------------
-async function clearVolunteers(){
-  if(confirm("Clear all volunteers?")){
-    const { error } = await supabase.from("volunteers").delete().neq('id', 0);
-    if(error) console.log("Error clearing volunteers:", error);
-    displayVolunteers();
-  }
+// REMOVE
+function removeVolunteer(index){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+volunteers.splice(index,1);
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+displayVolunteers();
 }
 
-// ----------------- CHECK PASSWORD -----------------
-function checkPassword(){
-  const input = document.getElementById("adminPass").value;
-  if(input === "alice123"){
-    document.getElementById("resetBtn").style.display = "block";
-    alert("Access granted");
-  } else {
-    alert("Wrong password");
-  }
+// CLEAR
+function clearVolunteers() {
+if(confirm("Clear all volunteers?")) {
+localStorage.removeItem("studyBuddyVolunteers");
+displayVolunteers();
 }
+}
+
 </script>
 
 </body>
