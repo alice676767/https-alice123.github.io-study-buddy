@@ -8,9 +8,6 @@
 <!-- 🌟 FONT -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- ✅ ADDED SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
 <style>
 body{
 margin:0;
@@ -191,22 +188,9 @@ font-size:12px;
 // 🔐 YOUR PASSWORD
 const ADMIN_PASSWORD = "alice123";
 
-// ✅ SUPABASE CONNECTION (ADDED)
-const supabase = window.supabase.createClient(
-"https://aaspzzucirsjwhmfgrva.supabase.co",
-"sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2"
-);
-
 // LOAD
-async function displayVolunteers(){
+function displayVolunteers(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-
-// ✅ ALSO LOAD FROM SUPABASE (ADDED)
-let { data } = await supabase.from("volunteers").select("*");
-if(data){
-volunteers = data;
-}
-
 let listDiv = document.getElementById("list");
 listDiv.innerHTML = "";
 
@@ -225,7 +209,7 @@ listDiv.appendChild(card);
 }
 
 // ADD
-async function addVolunteer(){
+function addVolunteer(){
 let name = document.getElementById("name").value.trim();
 let day = document.getElementById("day").value;
 let time = document.getElementById("time").value;
@@ -240,18 +224,15 @@ volunteers.push({name, day, time});
 
 localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
 
-// ✅ ALSO SAVE TO SUPABASE (ADDED)
-await supabase.from("volunteers").insert([{ name, day, time }]);
-
 displayVolunteers();
 document.getElementById("name").value = "";
 }
 
 // 🔐 REMOVE
-async function removeVolunteer(index){
+function removeVolunteer(index){
 let pass = prompt("Admin code to remove:");
 
-if(pass === null) return;
+if(pass === null) return; // cancel
 
 if(pass.trim() !== ADMIN_PASSWORD){
 alert("Wrong code!");
@@ -262,17 +243,11 @@ let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 volunteers.splice(index,1);
 localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
 
-// ✅ ALSO DELETE ALL MATCHING FROM SUPABASE (ADDED)
-let { data } = await supabase.from("volunteers").select("*");
-if(data && data[index]){
-await supabase.from("volunteers").delete().eq("id", data[index].id);
-}
-
 displayVolunteers();
 }
 
 // 🔐 RESET
-async function clearVolunteers(){
+function clearVolunteers(){
 let pass = prompt("Admin code to reset:");
 
 if(pass === null) return;
@@ -286,10 +261,6 @@ let confirmReset = confirm("Clear all volunteers?");
 if(!confirmReset) return;
 
 localStorage.removeItem("studyBuddyVolunteers");
-
-// ✅ ALSO CLEAR SUPABASE (ADDED)
-await supabase.from("volunteers").delete().neq("id", 0);
-
 displayVolunteers();
 }
 </script>
