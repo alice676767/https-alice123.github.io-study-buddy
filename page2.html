@@ -8,7 +8,7 @@
 <!-- 🌟 FONT -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- ✅ SUPABASE -->
+<!-- ✅ ADDED SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
@@ -191,7 +191,7 @@ font-size:12px;
 // 🔐 YOUR PASSWORD
 const ADMIN_PASSWORD = "alice123";
 
-// ✅ SUPABASE SETUP
+// ✅ SUPABASE CONNECTION (ADDED)
 const supabase = window.supabase.createClient(
 "https://aaspzzucirsjwhmfgrva.supabase.co",
 "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2"
@@ -199,27 +199,29 @@ const supabase = window.supabase.createClient(
 
 // LOAD
 async function displayVolunteers(){
-let { data, error } = await supabase
-.from("volunteers")
-.select("*");
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+// ✅ ALSO LOAD FROM SUPABASE (ADDED)
+let { data } = await supabase.from("volunteers").select("*");
+if(data){
+volunteers = data;
+}
 
 let listDiv = document.getElementById("list");
 listDiv.innerHTML = "";
 
-if(data){
-data.forEach((v,index)=>{
+volunteers.forEach((v,index)=>{
 let card = document.createElement("div");
 card.className = "card";
 
 card.innerHTML = `
 <b>${v.name}</b><br>
 <span class="badge">${v.day} • ${v.time}</span><br>
-<button class="remove-btn" onclick="removeVolunteer(${v.id})">Remove</button>
+<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
 `;
 
 listDiv.appendChild(card);
 });
-}
 }
 
 // ADD
@@ -233,16 +235,20 @@ alert("Please enter your name");
 return;
 }
 
-await supabase.from("volunteers").insert([
-{ name, day, time }
-]);
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+volunteers.push({name, day, time});
+
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
+// ✅ ALSO SAVE TO SUPABASE (ADDED)
+await supabase.from("volunteers").insert([{ name, day, time }]);
 
 displayVolunteers();
 document.getElementById("name").value = "";
 }
 
 // 🔐 REMOVE
-async function removeVolunteer(id){
+async function removeVolunteer(index){
 let pass = prompt("Admin code to remove:");
 
 if(pass === null) return;
@@ -252,7 +258,15 @@ alert("Wrong code!");
 return;
 }
 
-await supabase.from("volunteers").delete().eq("id", id);
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+volunteers.splice(index,1);
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
+// ✅ ALSO DELETE ALL MATCHING FROM SUPABASE (ADDED)
+let { data } = await supabase.from("volunteers").select("*");
+if(data && data[index]){
+await supabase.from("volunteers").delete().eq("id", data[index].id);
+}
 
 displayVolunteers();
 }
@@ -271,6 +285,9 @@ return;
 let confirmReset = confirm("Clear all volunteers?");
 if(!confirmReset) return;
 
+localStorage.removeItem("studyBuddyVolunteers");
+
+// ✅ ALSO CLEAR SUPABASE (ADDED)
 await supabase.from("volunteers").delete().neq("id", 0);
 
 displayVolunteers();
