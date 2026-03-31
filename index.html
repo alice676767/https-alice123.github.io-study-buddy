@@ -112,6 +112,7 @@ font-weight:bold;
 </nav>
 </header>
 
+<!-- 🌟 HERO -->
 <section class="hero">
 <h1>Study Buddy Portal</h1>
 <p>Book a peer study session during break time </p>
@@ -161,98 +162,161 @@ font-weight:bold;
 
 </section>
 
-<!-- 🌟 SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.29.0/dist/supabase.min.js"></script>
+<!-- ✅ SUPABASE CONNECTION -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script>
-// 🔹 Supabase setup
-const supabaseUrl = "https://aaspzzucirsjwhmfgrva.supabase.co";
-const supabaseKey = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = window.supabase.createClient(
+  "https://aaspzzucirsjwhmfgrva.supabase.co",
+  "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2"
+);
+</script>
 
-// 🔹 LOAD BOOKINGS
-async function loadBookings(){
-  const { data: bookings, error } = await supabase
+<script>
+
+// 🔥 SAVE TO SUPABASE
+async function saveToSupabase(day, time, name, subject, helper) {
+  const { data, error } = await supabase
     .from('bookings')
-    .select('*');
-  
-  if(error){ console.log(error); return; }
+    .insert([
+      {
+        day: day,
+        time: time,
+        student_name: name,
+        subject: subject,
+        helper: helper
+      }
+    ]);
 
-  let cells = document.querySelectorAll("td");
-  cells.forEach(cell=>{
-    cell.classList.remove("booked", "available");
-    cell.classList.add("slot");
-    cell.innerHTML = "";
-  });
-
-  bookings.forEach(b => {
-    let cell = Array.from(document.querySelectorAll("td")).find(td=>{
-      const onclick = td.getAttribute("onclick");
-      if(!onclick) return false;
-      return onclick.includes(`'${b.day}','${b.time}'`);
-    });
-    if(cell){
-      cell.innerHTML = `${b.name}<br>${b.subject}<br><b>${b.helper || "No volunteer available"}</b>`;
-      cell.classList.remove("slot");
-      cell.classList.add("booked");
-    }
-  });
-
-  highlightAvailable();
-}
-
-// 🔹 HIGHLIGHT AVAILABLE
-async function highlightAvailable(){
-  const { data: volunteers } = await supabase.from('volunteers').select('*');
-
-  document.querySelectorAll("td.slot").forEach(cell=>{
-    const onclick = cell.getAttribute("onclick");
-    if(!onclick) return;
-    let parts = onclick.match(/'(.*?)','(.*?)'/);
-    if(!parts) return;
-    let day = parts[1], time = parts[2];
-
-    let match = volunteers.find(v => v.day === day && v.time === time);
-    if(match) cell.classList.add("available");
-  });
-}
-
-// 🔹 BOOK SLOT
-async function book(cell, day, time){
-  if(cell.classList.contains("booked")){
-    document.getElementById("message").innerText = "This slot is already booked";
-    return;
+  if (error) {
+    console.log("Supabase error:", error);
+  } else {
+    console.log("Saved to Supabase");
   }
+}
 
-  let name = prompt("Enter your name and class");
-  let subject = prompt("Enter subject");
-  if(!name) return;
+// SAVE
+function saveBookings(){
+let data = [];
+document.querySelectorAll("td").forEach(cell=>{
+data.push(cell.innerHTML);
+});
+localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
+}
 
-  // Get volunteer if any
-  const { data: volunteers } = await supabase.from('volunteers').select('*').eq('day', day).eq('time', time);
-  let helper = volunteers.length ? volunteers[0].name : null;
+// LOAD
+function loadBookings(){
+let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
+let cells = document.querySelectorAll("td");
 
-  const { data, error } = await supabase.from('bookings').insert([{ name, subject, day, time, helper }]);
-  if(error){ console.log(error); return; }
+cells.forEach((cell,index)=>{
+if(data[index]){
+cell.innerHTML = data[index];
+cell.classList.remove("slot");
+cell.classList.add("booked");
+}
+});
+}
 
-  loadBookings();
+// RESET
+function resetBookings(){
+localStorage.removeItem("studyBuddyBookings");
+location.reload();
+}
+
+// 🔵 SHOW AVAILABLE VOLUNTEERS
+function highlightAvailable(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.slot").forEach(cell=>{
+let onclick = cell.getAttribute("onclick");
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+
+let day = parts[1];
+let time = parts[2];
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.classList.add("available");
+}
+});
+}
+
+// 🔥 UPDATE OLD BOOKINGS
+function updateBookingsWithVolunteers(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.booked").forEach(cell=>{
+
+if(cell.innerHTML.includes("No volunteer available")){
+
+let onclick = cell.getAttribute("onclick");
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+
+let day = parts[1];
+let time = parts[2];
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + match.name);
+saveBookings();
+}
+}
+
+});
+}
+
+// BOOK
+function book(cell,day,time){
+
+if(cell.classList.contains("booked")){
+document.getElementById("message").innerText = "This slot is already booked";
+return;
+}
+
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+let name = prompt("Enter your name and class");
+let subject = prompt("Enter subject");
+
+if(name){
+
+let helperName = match ? match.name : "None";
+saveToSupabase(day, time, name, subject, helperName);
+
+if(match){
+cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
+document.getElementById("message").innerText = "Matched with " + match.name;
+}else{
+cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
+document.getElementById("message").innerText = "No volunteer available";
+}
+
+cell.classList.remove("slot");
+cell.classList.add("booked");
+
+saveBookings();
+}
+
 }
 
 // 🔒 CHECK PASSWORD
 function checkPassword(){
   let input = document.getElementById("adminPass").value;
+
   if(input === "alice123"){
     document.getElementById("resetBtn").style.display = "block";
     alert("Access granted");
-  } else alert("Wrong password");
+  } else {
+    alert("Wrong password");
+  }
 }
 
-// 🔹 RESET BOOKINGS
-async function resetBookings(){
-  if(!confirm("Reset all bookings?")) return;
-  await supabase.from('bookings').delete().neq('id', 0); // delete all
-  loadBookings();
-}
 </script>
 
 </body>
 </html>
+
