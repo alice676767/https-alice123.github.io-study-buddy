@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+
 <title>Volunteer - Study Buddy</title>
 
+<!-- 🌟 FONT -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- ✅ SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
 body{
@@ -12,6 +18,7 @@ font-family:'Poppins', sans-serif;
 background:#f5f5f5;
 }
 
+/* HEADER */
 header{
 background:#0f172a;
 color:white;
@@ -32,6 +39,7 @@ text-decoration:none;
 font-weight:500;
 }
 
+/* HERO */
 .hero{
 background:linear-gradient(to right, #1e293b, #3b82f6);
 color:white;
@@ -49,6 +57,7 @@ margin-top:10px;
 font-size:18px;
 }
 
+/* FORM */
 .form-box{
 background:white;
 max-width:400px;
@@ -68,6 +77,7 @@ border-radius:8px;
 font-size:14px;
 }
 
+/* BUTTONS */
 .signup-btn{
 padding:12px;
 width:95%;
@@ -80,10 +90,6 @@ cursor:pointer;
 margin-top:10px;
 }
 
-.signup-btn:hover{
-background:#2563eb;
-}
-
 .reset-btn{
 padding:10px;
 background:#ef4444;
@@ -94,6 +100,7 @@ cursor:pointer;
 margin-top:10px;
 }
 
+/* LIST */
 #list{
 margin-top:30px;
 display:flex;
@@ -102,6 +109,7 @@ justify-content:center;
 gap:20px;
 }
 
+/* CARD */
 .card{
 background:white;
 padding:20px;
@@ -132,6 +140,7 @@ cursor:pointer;
 font-size:12px;
 }
 </style>
+
 </head>
 
 <body onload="displayVolunteers()">
@@ -151,7 +160,7 @@ font-size:12px;
 
 <section class="hero">
 <h1>Become a Volunteer</h1>
-<p>Help others learn and grow </p>
+<p>Help others learn and grow</p>
 </section>
 
 <div class="form-box">
@@ -178,55 +187,44 @@ font-size:12px;
 
 <div id="list"></div>
 
-<!-- ✅ SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
 <script>
+// 🔐 YOUR PASSWORD
+const ADMIN_PASSWORD = "alice123";
+
+// ✅ SUPABASE SETUP
 const supabase = window.supabase.createClient(
-  "https://aaspzzucirsjwhmfgrva.supabase.co",
-  "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2"
+"https://aaspzzucirsjwhmfgrva.supabase.co",
+"sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2"
 );
-</script>
 
-<script>
-
-// 🔥 LOAD FROM SUPABASE
-async function displayVolunteers() {
-
-let { data: volunteers, error } = await supabase
-  .from('volunteers')
-  .select('*');
-
-if(error){
-  console.log(error);
-  return;
-}
-
-// keep booking page working
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+// LOAD
+async function displayVolunteers(){
+let { data, error } = await supabase
+.from("volunteers")
+.select("*");
 
 let listDiv = document.getElementById("list");
 listDiv.innerHTML = "";
 
-volunteers.forEach((v,index) => {
+if(data){
+data.forEach((v,index)=>{
 let card = document.createElement("div");
 card.className = "card";
 
 card.innerHTML = `
-<b>${v.name}</b>
-<br>
-<span class="badge">${v.day} • ${v.time}</span>
-<br>
-<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
+<b>${v.name}</b><br>
+<span class="badge">${v.day} • ${v.time}</span><br>
+<button class="remove-btn" onclick="removeVolunteer(${v.id})">Remove</button>
 `;
 
 listDiv.appendChild(card);
 });
 }
+}
 
-// ADD volunteer
-function addVolunteer(){
-let name = document.getElementById("name").value;
+// ADD
+async function addVolunteer(){
+let name = document.getElementById("name").value.trim();
 let day = document.getElementById("day").value;
 let time = document.getElementById("time").value;
 
@@ -235,37 +233,48 @@ alert("Please enter your name");
 return;
 }
 
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-
-volunteers.push({ name: name, day: day, time: time });
-
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
-
-// 🔥 SAVE TO SUPABASE
-supabase.from('volunteers').insert([
-  { name: name, day: day, time: time }
+await supabase.from("volunteers").insert([
+{ name, day, time }
 ]);
 
 displayVolunteers();
 document.getElementById("name").value = "";
 }
 
-// REMOVE
-function removeVolunteer(index){
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-volunteers.splice(index,1);
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+// 🔐 REMOVE
+async function removeVolunteer(id){
+let pass = prompt("Admin code to remove:");
+
+if(pass === null) return;
+
+if(pass.trim() !== ADMIN_PASSWORD){
+alert("Wrong code!");
+return;
+}
+
+await supabase.from("volunteers").delete().eq("id", id);
+
 displayVolunteers();
 }
 
-// CLEAR
-function clearVolunteers() {
-if(confirm("Clear all volunteers?")) {
-localStorage.removeItem("studyBuddyVolunteers");
-displayVolunteers();
-}
+// 🔐 RESET
+async function clearVolunteers(){
+let pass = prompt("Admin code to reset:");
+
+if(pass === null) return;
+
+if(pass.trim() !== ADMIN_PASSWORD){
+alert("Wrong code!");
+return;
 }
 
+let confirmReset = confirm("Clear all volunteers?");
+if(!confirmReset) return;
+
+await supabase.from("volunteers").delete().neq("id", 0);
+
+displayVolunteers();
+}
 </script>
 
 </body>
