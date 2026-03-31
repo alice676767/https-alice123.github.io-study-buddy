@@ -78,7 +78,6 @@ font-size:16px;
 border-radius:8px;
 cursor:pointer;
 margin-top:10px;
-transition:0.3s;
 }
 
 .signup-btn:hover{
@@ -110,11 +109,6 @@ width:260px;
 border-radius:15px;
 box-shadow:0 6px 15px rgba(0,0,0,0.1);
 text-align:left;
-position:relative;
-}
-
-.card b{
-font-size:18px;
 }
 
 .badge{
@@ -138,7 +132,6 @@ cursor:pointer;
 font-size:12px;
 }
 </style>
-
 </head>
 
 <body onload="displayVolunteers()">
@@ -151,5 +144,131 @@ font-size:12px;
 <nav>
 <a href="about.html">About</a>
 <a href="index.html">Home</a>
-<a href
+<a href="page2.html">Volunteer</a>
+<a href="contact.html">Contact</a>
+</nav>
+</header>
+
+<section class="hero">
+<h1>Become a Volunteer</h1>
+<p>Help others learn and grow </p>
+</section>
+
+<div class="form-box">
+
+<input type="text" id="name" placeholder="Your name and class">
+
+<select id="day">
+<option>Monday</option>
+<option>Tuesday</option>
+<option>Wednesday</option>
+<option>Thursday</option>
+<option>Friday</option>
+</select>
+
+<select id="time">
+<option>10:00-10:30</option>
+<option>1:00-1:30</option>
+</select>
+
+<button class="signup-btn" onclick="addVolunteer()">Sign Up</button>
+<button class="reset-btn" onclick="clearVolunteers()">Reset Week</button>
+
+</div>
+
+<div id="list"></div>
+
+<!-- ✅ SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+const supabase = window.supabase.createClient(
+  "https://aaspzzucirsjwhmfgrva.supabase.co",
+  "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2"
+);
+</script>
+
+<script>
+
+// 🔥 LOAD FROM SUPABASE
+async function displayVolunteers() {
+
+let { data: volunteers, error } = await supabase
+  .from('volunteers')
+  .select('*');
+
+if(error){
+  console.log(error);
+  return;
+}
+
+// keep booking page working
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
+let listDiv = document.getElementById("list");
+listDiv.innerHTML = "";
+
+volunteers.forEach((v,index) => {
+let card = document.createElement("div");
+card.className = "card";
+
+card.innerHTML = `
+<b>${v.name}</b>
+<br>
+<span class="badge">${v.day} • ${v.time}</span>
+<br>
+<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
+`;
+
+listDiv.appendChild(card);
+});
+}
+
+// ADD volunteer
+function addVolunteer(){
+let name = document.getElementById("name").value;
+let day = document.getElementById("day").value;
+let time = document.getElementById("time").value;
+
+if(name === ""){
+alert("Please enter your name");
+return;
+}
+
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+volunteers.push({ name: name, day: day, time: time });
+
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
+// 🔥 SAVE TO SUPABASE
+supabase.from('volunteers').insert([
+  { name: name, day: day, time: time }
+]);
+
+displayVolunteers();
+document.getElementById("name").value = "";
+}
+
+// REMOVE
+function removeVolunteer(index){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+volunteers.splice(index,1);
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+displayVolunteers();
+}
+
+// CLEAR
+function clearVolunteers() {
+if(confirm("Clear all volunteers?")) {
+localStorage.removeItem("studyBuddyVolunteers");
+displayVolunteers();
+}
+}
+
+</script>
+
+</body>
+</html>
+
 
