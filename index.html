@@ -84,7 +84,7 @@ font-weight:bold;
 </style>
 </head>
 
-<body onload="loadBookings()">
+<body>
 
 <header>
 <div class="logo">
@@ -156,13 +156,22 @@ const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+console.log("🔥 Supabase script loaded");
+
+// ✅ THIS FIXES GITHUB PAGES ISSUE
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 Page loaded");
+  loadBookings();
+});
+
 // LOAD BOOKINGS
 async function loadBookings(){
 
 let res1 = await supabaseClient.from("bookings").select("*");
 let res2 = await supabaseClient.from("volunteers").select("*");
 
-console.log(res1, res2);
+console.log("Bookings:", res1);
+console.log("Volunteers:", res2);
 
 if(res1.error || res2.error){
 document.getElementById("message").innerText = "⚠️ Database error - check console";
@@ -259,5 +268,6 @@ alert("Wrong password");
 
 </body>
 </html>
+
 
 
