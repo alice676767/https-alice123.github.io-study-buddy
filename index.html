@@ -159,12 +159,24 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // LOAD BOOKINGS
 async function loadBookings(){
 
-let { data: bookings } = await supabaseClient.from("bookings").select("*");
-let { data: volunteers } = await supabaseClient.from("volunteers").select("*");
+let res1 = await supabaseClient.from("bookings").select("*");
+let res2 = await supabaseClient.from("volunteers").select("*");
 
-// show available
+console.log(res1, res2);
+
+if(res1.error || res2.error){
+document.getElementById("message").innerText = "⚠️ Database error - check console";
+return;
+}
+
+let bookings = res1.data || [];
+let volunteers = res2.data || [];
+
+// AVAILABLE
 document.querySelectorAll("td.slot").forEach(cell=>{
 let onclick = cell.getAttribute("onclick");
+if(!onclick) return;
+
 let parts = onclick.match(/'(.*?)','(.*?)'/);
 let day = parts[1];
 let time = parts[2];
@@ -175,7 +187,7 @@ cell.classList.add("available");
 }
 });
 
-// show booked
+// BOOKINGS
 bookings.forEach(b => {
 document.querySelectorAll("td").forEach(cell => {
 let onclick = cell.getAttribute("onclick");
@@ -213,14 +225,19 @@ let match = volunteers.find(v => v.day === day && v.time === time);
 
 let helper = match ? match.name : null;
 
-await supabaseClient.from("bookings").insert([
+let result = await supabaseClient.from("bookings").insert([
 { name, subject, day, time, helper }
 ]);
+
+if(result.error){
+alert("Error saving booking");
+return;
+}
 
 location.reload();
 }
 
-// RESET (FOR EVERYONE)
+// RESET
 async function resetBookings(){
 await supabaseClient.from("bookings").delete().neq("id", 0);
 location.reload();
