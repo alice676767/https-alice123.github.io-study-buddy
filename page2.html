@@ -158,7 +158,14 @@ cursor:pointer;
 </select>
 
 <button class="signup-btn" onclick="addVolunteer()">Sign Up</button>
-<button class="reset-btn" onclick="clearVolunteers()">Reset Week</button>
+
+<!-- 🔒 ADMIN -->
+<input type="password" id="adminPass" placeholder="Enter admin code">
+<button onclick="checkPassword()">Enter</button>
+
+<button id="resetBtn" class="reset-btn" onclick="clearVolunteers()" style="display:none;">
+Reset Week
+</button>
 
 </div>
 
@@ -172,15 +179,15 @@ const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-console.log("🔥 Volunteer page connected to Supabase");
+console.log("🔥 Volunteer page connected");
 
-// ✅ FIX FOR GITHUB PAGES
+// LOAD PAGE
 window.addEventListener("DOMContentLoaded", () => {
   console.log("🚀 Page loaded");
   displayVolunteers();
 });
 
-// LOAD
+// DISPLAY
 async function displayVolunteers(){
 
 let res = await supabaseClient.from("volunteers").select("*").order("id");
@@ -221,7 +228,7 @@ alert("Enter your name");
 return;
 }
 
-// prevent duplicate slot
+// prevent duplicate
 let check = await supabaseClient
 .from("volunteers")
 .select("*")
@@ -237,8 +244,6 @@ return;
 let result = await supabaseClient.from("volunteers").insert([
 { name, day, time }
 ]);
-
-console.log("Insert result:", result);
 
 if(result.error){
 alert("Error saving volunteer");
@@ -257,9 +262,19 @@ displayVolunteers();
 
 // RESET
 async function clearVolunteers(){
-if(confirm("Clear all volunteers?")){
 await supabaseClient.from("volunteers").delete().neq("id", 0);
 displayVolunteers();
+}
+
+// 🔒 ADMIN PASSWORD
+function checkPassword(){
+let input = document.getElementById("adminPass").value;
+
+if(input === "alice123"){
+document.getElementById("resetBtn").style.display = "block";
+alert("Access granted");
+}else{
+alert("Wrong password");
 }
 }
 </script>
