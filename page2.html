@@ -77,7 +77,6 @@ color:white;
 font-size:16px;
 border-radius:8px;
 cursor:pointer;
-margin-top:10px;
 }
 
 .signup-btn:hover{
@@ -182,22 +181,30 @@ font-size:12px;
 
 <div id="list"></div>
 
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// DISPLAY
-function displayVolunteers() {
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+// LOAD
+async function displayVolunteers(){
+
+let { data } = await supabaseClient.from("volunteers").select("*").order("id");
+
 let listDiv = document.getElementById("list");
-listDiv.innerHTML = ""; 
+listDiv.innerHTML = "";
 
-volunteers.forEach((v,index) => {
+data.forEach(v => {
 let card = document.createElement("div");
 card.className = "card";
 
 card.innerHTML = `
 <b>${v.name}</b><br>
 <span class="badge">${v.day} • ${v.time}</span><br>
-<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
+<button class="remove-btn" onclick="removeVolunteer(${v.id})">Remove</button>
 `;
 
 listDiv.appendChild(card);
@@ -205,7 +212,8 @@ listDiv.appendChild(card);
 }
 
 // ADD
-function addVolunteer(){
+async function addVolunteer(){
+
 let name = document.getElementById("name").value.trim();
 let day = document.getElementById("day").value;
 let time = document.getElementById("time").value;
@@ -215,35 +223,36 @@ alert("Please enter your name");
 return;
 }
 
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+// prevent duplicates
+let { data: existing } = await supabaseClient
+.from("volunteers")
+.select("*")
+.eq("day", day)
+.eq("time", time);
 
-// 🚫 prevent duplicates
-let exists = volunteers.find(v => v.day === day && v.time === time);
-if(exists){
-alert("Someone already signed up for this slot!");
+if(existing.length > 0){
+alert("Slot already taken!");
 return;
 }
 
-volunteers.push({ name, day, time });
+await supabaseClient.from("volunteers").insert([
+{ name, day, time }
+]);
 
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
-
-displayVolunteers();
 document.getElementById("name").value = "";
+displayVolunteers();
 }
 
 // REMOVE
-function removeVolunteer(index){
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-volunteers.splice(index,1);
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+async function removeVolunteer(id){
+await supabaseClient.from("volunteers").delete().eq("id", id);
 displayVolunteers();
 }
 
-// CLEAR
-function clearVolunteers() {
-if(confirm("Clear all volunteers?")) {
-localStorage.removeItem("studyBuddyVolunteers");
+// RESET (FOR EVERYONE)
+async function clearVolunteers(){
+if(confirm("Clear all volunteers?")){
+await supabaseClient.from("volunteers").delete().neq("id", 0);
 displayVolunteers();
 }
 }
@@ -252,5 +261,3 @@ displayVolunteers();
 
 </body>
 </html>
-
-
