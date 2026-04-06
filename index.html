@@ -39,6 +39,16 @@ text-align:center;
 padding:100px 20px;
 }
 
+.hero h1{
+font-size:50px;
+margin:0;
+}
+
+.hero p{
+margin-top:10px;
+font-size:18px;
+}
+
 .booking-section{
 background:white;
 padding:60px;
@@ -79,7 +89,7 @@ font-weight:bold;
 </style>
 </head>
 
-<body onload="initPage()">
+<body onload="loadBookings(); highlightAvailable(); updateBookingsWithVolunteers();">
 
 <header>
 <div class="logo">
@@ -103,7 +113,7 @@ font-weight:bold;
 
 <h2>Book a Study Session</h2>
 
-<table id="table">
+<table>
 
 <tr>
 <th>Time</th>
@@ -116,20 +126,20 @@ font-weight:bold;
 
 <tr>
 <th>10:00-10:30</th>
-<td class="slot"></td>
-<td class="slot"></td>
-<td class="slot"></td>
-<td class="slot"></td>
-<td class="slot"></td>
+<td class="slot" onclick="book(this,'Monday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Tuesday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Wednesday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Thursday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Friday','10:00-10:30')"></td>
 </tr>
 
 <tr>
 <th>1:00-1:30</th>
-<td class="slot"></td>
-<td class="slot"></td>
-<td class="slot"></td>
-<td class="slot"></td>
-<td class="slot"></td>
+<td class="slot" onclick="book(this,'Monday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Tuesday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Wednesday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Thursday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Friday','1:00-1:30')"></td>
 </tr>
 
 </table>
@@ -138,47 +148,18 @@ font-weight:bold;
 
 <input type="password" id="adminPass" placeholder="Enter code">
 <button onclick="checkPassword()">Enter</button>
-<button id="resetBtn" onclick="resetBookings()" style="display:none;">Reset</button>
+
+<button id="resetBtn" onclick="resetBookings()" style="margin-top:20px; display:none;">Reset Bookings</button>
 
 </section>
 
 <script>
 
-const days = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
-const times = ["10:00-10:30","1:00-1:30"];
-
-// INIT PAGE (SAFE)
-function initPage(){
-attachClickEvents();
-loadBookings();
-highlightAvailable();
-updateBookingsWithVolunteers();
-}
-
-// ADD CLICK EVENTS (NO onclick parsing anymore)
-function attachClickEvents(){
-let rows = document.querySelectorAll("#table tr");
-
-for(let r=1; r<rows.length; r++){
-let cells = rows[r].children;
-
-for(let c=1; c<cells.length; c++){
-let cell = cells[c];
-let day = days[c-1];
-let time = times[r-1];
-
-cell.onclick = function(){
-book(cell, day, time);
-};
-}
-}
-}
-
 // SAVE
 function saveBookings(){
 let data = [];
 document.querySelectorAll("td").forEach(cell=>{
-data.push(cell.innerHTML);
+data.push(cell.innerHTML || "");
 });
 localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
 }
@@ -188,11 +169,11 @@ function loadBookings(){
 let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
 let cells = document.querySelectorAll("td");
 
-cells.forEach((cell,i)=>{
-if(data[i]){
-cell.innerHTML = data[i];
-cell.classList.add("booked");
+cells.forEach((cell,index)=>{
+if(data[index] && data[index] !== ""){
+cell.innerHTML = data[index];
 cell.classList.remove("slot");
+cell.classList.add("booked");
 }
 });
 }
@@ -203,83 +184,85 @@ localStorage.removeItem("studyBuddyBookings");
 location.reload();
 }
 
+// SAFE GET DAY/TIME
+function getCellInfo(cell){
+let onclick = cell.getAttribute("onclick");
+if(!onclick) return null;
+
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+if(!parts || parts.length < 3) return null;
+
+return {
+day: parts[1],
+time: parts[2]
+};
+}
+
 // SHOW AVAILABLE
 function highlightAvailable(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 
-let rows = document.querySelectorAll("#table tr");
+document.querySelectorAll("td.slot").forEach(cell=>{
 
-for(let r=1; r<rows.length; r++){
-let cells = rows[r].children;
+let info = getCellInfo(cell);
+if(!info) return;
 
-for(let c=1; c<cells.length; c++){
-let cell = cells[c];
-if(!cell.classList.contains("slot")) continue;
-
-let day = days[c-1];
-let time = times[r-1];
-
-let match = volunteers.find(v => v.day === day && v.time === time);
+let match = volunteers.find(v => v.day === info.day && v.time === info.time);
 
 if(match){
 cell.classList.add("available");
 }
-}
-}
+});
 }
 
 // UPDATE BOOKINGS
 function updateBookingsWithVolunteers(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 
-let rows = document.querySelectorAll("#table tr");
+document.querySelectorAll("td.booked").forEach(cell=>{
 
-for(let r=1; r<rows.length; r++){
-let cells = rows[r].children;
+if(cell.innerHTML.includes("No volunteer available")){
 
-for(let c=1; c<cells.length; c++){
-let cell = cells[c];
+let info = getCellInfo(cell);
+if(!info) return;
 
-if(cell.classList.contains("booked") && cell.innerHTML.includes("No volunteer available")){
-
-let day = days[c-1];
-let time = times[r-1];
-
-let match = volunteers.find(v => v.day === day && v.time === time);
+let match = volunteers.find(v => v.day === info.day && v.time === info.time);
 
 if(match){
 cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + match.name);
 saveBookings();
 }
 }
-}
-}
+
+});
 }
 
 // BOOK
 function book(cell,day,time){
 
 if(cell.classList.contains("booked")){
-document.getElementById("message").innerText = "Already booked";
+document.getElementById("message").innerText = "This slot is already booked";
 return;
 }
 
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 let match = volunteers.find(v => v.day === day && v.time === time);
 
-let name = prompt("Enter your name");
+let name = prompt("Enter your name and class");
 let subject = prompt("Enter subject");
 
 if(name){
 
 if(match){
 cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
+document.getElementById("message").innerText = "Matched with " + match.name;
 }else{
 cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
+document.getElementById("message").innerText = "No volunteer available";
 }
 
-cell.classList.add("booked");
 cell.classList.remove("slot");
+cell.classList.add("booked");
 
 saveBookings();
 }
@@ -287,7 +270,9 @@ saveBookings();
 
 // PASSWORD
 function checkPassword(){
-if(document.getElementById("adminPass").value === "alice123"){
+let input = document.getElementById("adminPass").value;
+
+if(input === "alice123"){
 document.getElementById("resetBtn").style.display = "block";
 alert("Access granted");
 }else{
@@ -299,6 +284,7 @@ alert("Wrong password");
 
 </body>
 </html>
+
 
 
 
