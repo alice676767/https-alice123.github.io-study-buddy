@@ -1,6 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Study Buddy Portal</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+margin:0;
+font-family:'Poppins', sans-serif;
+background:#f5f5f5;
+}
+
+header{
+background:#0f172a;
+color:white;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:20px 60px;
+}
+
+.logo img{
+height:50px;
+}
+
+nav a{
+color:white;
+margin:0 15px;
+text-decoration:none;
+font-weight:500;
+}
+
+.hero{
+background:linear-gradient(to right, #1e293b, #3b82f6);
+color:white;
+text-align:center;
+padding:100px 20px;
+}
+
+.hero h1{
+font-size:50px;
+margin:0;
+}
+
+.hero p{
+margin-top:10px;
+font-size:18px;
+}
+
+.booking-section{
+background:white;
+padding:60px;
+text-align:center;
+}
+
+table{
+margin:auto;
+border-collapse:collapse;
+}
+
+td, th{
+padding:20px;
+border:1px solid #ddd;
+width:140px;
+}
+
+.slot{
+background:#22c55e;
+color:white;
+cursor:pointer;
+border-radius:8px;
+}
+
+.available{
+background:#3b82f6;
+}
+
+.booked{
+background:#ef4444;
+color:white;
+}
+
+#message{
+margin-top:20px;
+font-weight:bold;
+}
+</style>
+</head>
+
+<body onload="loadBookings(); highlightAvailable(); updateBookingsWithVolunteers();">
+
+<header>
+<div class="logo">
+<img src="logo.png">
+</div>
+
+<nav>
+<a href="about.html">About</a>
+<a href="index.html">Home</a>
+<a href="page2.html">Volunteer</a>
+<a href="contact.html">Contact</a>
+</nav>
+</header>
+
+<section class="hero">
+<h1>Study Buddy Portal</h1>
+<p>Book a peer study session during break time</p>
+</section>
+
+<section class="booking-section">
+
+<h2>Book a Study Session</h2>
+
+<table>
+
+<tr>
+<th>Time</th>
+<th>Monday</th>
+<th>Tuesday</th>
+<th>Wednesday</th>
+<th>Thursday</th>
+<th>Friday</th>
+</tr>
+
+<tr>
+<th>10:00-10:30</th>
+<td class="slot" onclick="book(this,'Monday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Tuesday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Wednesday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Thursday','10:00-10:30')"></td>
+<td class="slot" onclick="book(this,'Friday','10:00-10:30')"></td>
+</tr>
+
+<tr>
+<th>1:00-1:30</th>
+<td class="slot" onclick="book(this,'Monday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Tuesday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Wednesday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Thursday','1:00-1:30')"></td>
+<td class="slot" onclick="book(this,'Friday','1:00-1:30')"></td>
+</tr>
+
+</table>
+
+<p id="message"></p>
+
+<input type="password" id="adminPass" placeholder="Enter code">
+<button onclick="checkPassword()">Enter</button>
+
+<button id="resetBtn" onclick="resetBookings()" style="margin-top:20px; display:none;">Reset Bookings</button>
+
+</section>
+
 <script>
 
-// SAVE (FIXED)
+// SAVE
 function saveBookings(){
 let data = [];
 document.querySelectorAll("td").forEach(cell=>{
@@ -9,13 +164,13 @@ data.push(cell.innerHTML);
 localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
 }
 
-// LOAD (FIXED)
+// LOAD
 function loadBookings(){
 let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
 let cells = document.querySelectorAll("td");
 
 cells.forEach((cell,index)=>{
-if(data[index] && data[index] !== ""){
+if(data[index]){
 cell.innerHTML = data[index];
 cell.classList.remove("slot");
 cell.classList.add("booked");
@@ -29,21 +184,20 @@ localStorage.removeItem("studyBuddyBookings");
 location.reload();
 }
 
-// 🔵 SHOW AVAILABLE VOLUNTEERS (FIXED)
+// 🔵 SHOW AVAILABLE VOLUNTEERS (SAFE FIX)
 function highlightAvailable(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 
-let days = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
-let times = ["10:00-10:30","1:00-1:30"];
+document.querySelectorAll("td.slot").forEach(cell=>{
 
-document.querySelectorAll("td").forEach((cell)=>{
-if(!cell.classList.contains("slot")) return;
+let onclick = cell.getAttribute("onclick");
+if(!onclick) return;
 
-let cellIndex = Array.from(cell.parentNode.children).indexOf(cell);
-let rowIndex = Array.from(cell.parentNode.parentNode.children).indexOf(cell.parentNode);
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+if(!parts) return;
 
-let day = days[cellIndex - 1];
-let time = times[rowIndex - 1];
+let day = parts[1];
+let time = parts[2];
 
 let match = volunteers.find(v => v.day === day && v.time === time);
 
@@ -53,22 +207,22 @@ cell.classList.add("available");
 });
 }
 
-// 🔥 UPDATE OLD BOOKINGS (FIXED)
+// 🔥 UPDATE BOOKINGS (SAFE FIX)
 function updateBookingsWithVolunteers(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-
-let days = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
-let times = ["10:00-10:30","1:00-1:30"];
 
 document.querySelectorAll("td.booked").forEach(cell=>{
 
 if(cell.innerHTML.includes("No volunteer available")){
 
-let cellIndex = Array.from(cell.parentNode.children).indexOf(cell);
-let rowIndex = Array.from(cell.parentNode.parentNode.children).indexOf(cell.parentNode);
+let onclick = cell.getAttribute("onclick");
+if(!onclick) return;
 
-let day = days[cellIndex - 1];
-let time = times[rowIndex - 1];
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+if(!parts) return;
+
+let day = parts[1];
+let time = parts[2];
 
 let match = volunteers.find(v => v.day === day && v.time === time);
 
@@ -81,7 +235,7 @@ saveBookings();
 });
 }
 
-// BOOK (SMALL FIX)
+// BOOK
 function book(cell,day,time){
 
 if(cell.classList.contains("booked")){
@@ -112,7 +266,7 @@ saveBookings();
 }
 }
 
-// 🔒 PASSWORD
+// PASSWORD
 function checkPassword(){
 let input = document.getElementById("adminPass").value;
 
@@ -126,5 +280,7 @@ alert("Wrong password");
 
 </script>
 
+</body>
+</html>
 
 
