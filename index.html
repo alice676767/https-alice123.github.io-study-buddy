@@ -5,9 +5,6 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- ✅ SUPABASE (FIXED VERSION) -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
 <style>
 body{
 margin:0;
@@ -40,6 +37,11 @@ background:linear-gradient(to right, #1e293b, #3b82f6);
 color:white;
 text-align:center;
 padding:100px 20px;
+}
+
+.hero h1{
+font-size:50px;
+margin:0;
 }
 
 .booking-section{
@@ -82,7 +84,7 @@ font-weight:bold;
 </style>
 </head>
 
-<body onload="initPage()">
+<body>
 
 <header>
 <div class="logo">
@@ -99,14 +101,14 @@ font-weight:bold;
 
 <section class="hero">
 <h1>Study Buddy Portal</h1>
-<p>Book a peer study session during break time</p>
+<p>Book a peer study session</p>
 </section>
 
 <section class="booking-section">
 
 <h2>Book a Study Session</h2>
 
-<table id="table">
+<table>
 
 <tr>
 <th>Time</th>
@@ -142,151 +144,119 @@ font-weight:bold;
 <input type="password" id="adminPass" placeholder="Enter code">
 <button onclick="checkPassword()">Enter</button>
 
-<button id="resetBtn" onclick="resetBookings()" style="display:none;">Reset Bookings</button>
+<button id="resetBtn" onclick="resetBookings()" style="display:none; margin-top:20px;">Reset Bookings</button>
 
 </section>
 
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-
-// ✅ YOUR SUPABASE
 const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
-const SUPABASE_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
+const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ✅ CORRECT INIT
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log("🔥 Supabase script loaded");
 
-// INIT PAGE
-function initPage(){
-loadBookings();
-loadVolunteersFromSupabase(); // 🔥 important
-highlightAvailable();
-updateBookingsWithVolunteers();
-}
+// ✅ THIS FIXES GITHUB PAGES ISSUE
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 Page loaded");
+  loadBookings();
+});
 
-// 🔥 LOAD VOLUNTEERS FROM SUPABASE
-async function loadVolunteersFromSupabase(){
-let { data, error } = await supabaseClient
-.from("volunteers")
-.select("*");
+// LOAD BOOKINGS
+async function loadBookings(){
 
-if(error){
-console.error(error);
+let res1 = await supabaseClient.from("bookings").select("*");
+let res2 = await supabaseClient.from("volunteers").select("*");
+
+console.log("Bookings:", res1);
+console.log("Volunteers:", res2);
+
+if(res1.error || res2.error){
+document.getElementById("message").innerText = "⚠️ Database error - check console";
 return;
 }
 
-// sync with localStorage so your system still works
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(data || []));
-}
+let bookings = res1.data || [];
+let volunteers = res2.data || [];
 
-// SAVE BOOKINGS
-function saveBookings(){
-let data = [];
-document.querySelectorAll("td").forEach(cell=>{
-data.push(cell.innerHTML || "");
-});
-localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
-}
-
-// LOAD BOOKINGS
-function loadBookings(){
-let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
-let cells = document.querySelectorAll("td");
-
-cells.forEach((cell,index)=>{
-if(data[index] && data[index] !== ""){
-cell.innerHTML = data[index];
-cell.classList.remove("slot");
-cell.classList.add("booked");
-}
-});
-}
-
-// RESET
-function resetBookings(){
-localStorage.removeItem("studyBuddyBookings");
-location.reload();
-}
-
-// SAFE GET INFO
-function getCellInfo(cell){
+// AVAILABLE
+document.querySelectorAll("td.slot").forEach(cell=>{
 let onclick = cell.getAttribute("onclick");
-if(!onclick) return null;
+if(!onclick) return;
 
 let parts = onclick.match(/'(.*?)','(.*?)'/);
-if(!parts) return null;
+let day = parts[1];
+let time = parts[2];
 
-return { day: parts[1], time: parts[2] };
-}
-
-// SHOW AVAILABLE
-function highlightAvailable(){
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-
-document.querySelectorAll("td.slot").forEach(cell=>{
-let info = getCellInfo(cell);
-if(!info) return;
-
-let match = volunteers.find(v => v.day === info.day && v.time === info.time);
+let match = volunteers.find(v => v.day === day && v.time === time);
 if(match){
 cell.classList.add("available");
 }
 });
+
+// BOOKINGS
+bookings.forEach(b => {
+document.querySelectorAll("td").forEach(cell => {
+let onclick = cell.getAttribute("onclick");
+if(!onclick) return;
+
+let parts = onclick.match(/'(.*?)','(.*?)'/);
+let day = parts[1];
+let time = parts[2];
+
+if(b.day === day && b.time === time){
+cell.innerHTML = b.name + "<br>" + b.subject + "<br><b>Helper: " + (b.helper || "None") + "</b>";
+cell.classList.remove("slot");
+cell.classList.add("booked");
 }
-
-// UPDATE BOOKINGS
-function updateBookingsWithVolunteers(){
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-
-document.querySelectorAll("td.booked").forEach(cell=>{
-
-if(cell.innerHTML.includes("No volunteer available")){
-
-let info = getCellInfo(cell);
-if(!info) return;
-
-let match = volunteers.find(v => v.day === info.day && v.time === info.time);
-
-if(match){
-cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + match.name);
-saveBookings();
-}
-}
-
 });
+});
+
 }
 
 // BOOK
-function book(cell,day,time){
+async function book(cell,day,time){
 
 if(cell.classList.contains("booked")){
 document.getElementById("message").innerText = "Already booked";
 return;
 }
 
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-let match = volunteers.find(v => v.day === day && v.time === time);
-
-let name = prompt("Enter your name");
+let name = prompt("Enter your name and class");
 let subject = prompt("Enter subject");
 
-if(name){
+if(!name) return;
 
-if(match){
-cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
-}else{
-cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
+let { data: volunteers } = await supabaseClient.from("volunteers").select("*");
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+let helper = match ? match.name : null;
+
+let result = await supabaseClient.from("bookings").insert([
+{ name, subject, day, time, helper }
+]);
+
+if(result.error){
+alert("Error saving booking");
+return;
 }
 
-cell.classList.add("booked");
-cell.classList.remove("slot");
-
-saveBookings();
+location.reload();
 }
+
+// RESET
+async function resetBookings(){
+await supabaseClient.from("bookings").delete().neq("id", 0);
+location.reload();
 }
 
 // PASSWORD
 function checkPassword(){
-if(document.getElementById("adminPass").value === "alice123"){
+let input = document.getElementById("adminPass").value;
+
+if(input === "alice123"){
 document.getElementById("resetBtn").style.display = "block";
 alert("Access granted");
 }else{
