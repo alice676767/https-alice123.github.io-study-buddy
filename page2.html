@@ -1,298 +1,82 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Volunteer - Study Buddy</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
-
-<style>
-body{
-margin:0;
-font-family:'Poppins', sans-serif;
-background:#f5f5f5;
-}
-
-header{
-background:#0f172a;
-color:white;
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:20px 60px;
-}
-
-.logo img{
-height:50px;
-}
-
-nav a{
-color:white;
-margin:0 15px;
-text-decoration:none;
-font-weight:500;
-}
-
-.hero{
-background:linear-gradient(to right, #1e293b, #3b82f6);
-color:white;
-text-align:center;
-padding:80px 20px;
-}
-
-.hero h1{
-font-size:45px;
-margin:0;
-}
-
-.form-box{
-background:white;
-max-width:420px;
-margin:40px auto;
-padding:30px;
-border-radius:15px;
-box-shadow:0 8px 20px rgba(0,0,0,0.1);
-text-align:center;
-}
-
-input, select{
-padding:14px;
-margin:10px;
-width:90%;
-border:1px solid #ccc;
-border-radius:8px;
-font-size:15px;
-}
-
-.signup-btn{
-padding:14px;
-width:95%;
-background:#3b82f6;
-border:none;
-color:white;
-font-size:16px;
-border-radius:8px;
-cursor:pointer;
-}
-
-.reset-btn{
-padding:14px;
-background:#ef4444;
-border:none;
-color:white;
-border-radius:8px;
-cursor:pointer;
-margin-top:10px;
-width:100%;
-font-size:16px;
-}
-
-#list{
-margin-top:30px;
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-gap:20px;
-}
-
-.card{
-background:white;
-padding:20px;
-width:260px;
-border-radius:15px;
-box-shadow:0 6px 15px rgba(0,0,0,0.1);
-}
-
-.badge{
-display:inline-block;
-margin-top:10px;
-background:#3b82f6;
-color:white;
-padding:5px 10px;
-border-radius:20px;
-font-size:12px;
-}
-
-.remove-btn{
-margin-top:10px;
-background:#ef4444;
-border:none;
-color:white;
-padding:8px 12px;
-border-radius:6px;
-cursor:pointer;
-}
-</style>
-</head>
-
-<body>
-
-<header>
-<div class="logo">
-<img src="logo.png">
-</div>
-
-<nav>
-<a href="about.html">About</a>
-<a href="index.html">Home</a>
-<a href="page2.html">Volunteer</a>
-<a href="contact.html">Contact</a>
-</nav>
-</header>
-
-<section class="hero">
-<h1>Become a Volunteer</h1>
-<p>Help others learn and grow</p>
-</section>
-
-<div class="form-box">
-
-<input type="text" id="name" placeholder="Your name and class">
-
-<select id="day">
-<option>Monday</option>
-<option>Tuesday</option>
-<option>Wednesday</option>
-<option>Thursday</option>
-<option>Friday</option>
-</select>
-
-<select id="time">
-<option>10:00-10:30</option>
-<option>1:00-1:30</option>
-</select>
-
-<button class="signup-btn" onclick="addVolunteer()">Sign Up</button>
-
-<!-- 🔒 ADMIN PANEL -->
-<div style="margin-top:25px; padding:20px; background:#f1f5f9; border-radius:12px;">
-  
-  <h3 style="margin:0 0 10px 0;">🔒 Admin Panel</h3>
-
-  <input type="password" id="adminPass" placeholder="Enter admin code">
-
-  <button onclick="checkPassword()" 
-  style="margin-top:10px; padding:12px; width:100%; background:#0f172a; color:white; border:none; border-radius:8px;">
-  Enter
-  </button>
-
-  <button id="resetBtn" class="reset-btn" onclick="clearVolunteers()" style="display:none;">
-  Reset All Volunteers
-  </button>
-
-</div>
-
-</div>
-
-<div id="list"></div>
-
-<!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-console.log("🔥 Volunteer page connected");
+const ADMIN_PASSWORD = "alice123";
 
-// LOAD PAGE
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Page loaded");
-  displayVolunteers();
-});
-
-// DISPLAY
-async function displayVolunteers(){
-
-let res = await supabaseClient.from("volunteers").select("*").order("id");
-
-console.log("Volunteers:", res);
-
-if(res.error){
-alert("Error loading volunteers");
-return;
-}
-
+function displayVolunteers(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 let listDiv = document.getElementById("list");
 listDiv.innerHTML = "";
 
-(res.data || []).forEach(v => {
+volunteers.forEach((v,index)=>{
 let card = document.createElement("div");
 card.className = "card";
 
 card.innerHTML = `
 <b>${v.name}</b><br>
 <span class="badge">${v.day} • ${v.time}</span><br>
-<button class="remove-btn" onclick="removeVolunteer(${v.id})">Remove</button>
+<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
 `;
 
 listDiv.appendChild(card);
 });
 }
 
-// ADD
-async function addVolunteer(){
-
+function addVolunteer(){
 let name = document.getElementById("name").value.trim();
 let day = document.getElementById("day").value;
 let time = document.getElementById("time").value;
 
 if(name === ""){
-alert("Enter your name");
+alert("Please enter your name");
 return;
 }
 
-// prevent duplicate
-let check = await supabaseClient
-.from("volunteers")
-.select("*")
-.eq("day", day)
-.eq("time", time);
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+volunteers.push({name, day, time});
 
-if(check.data.length > 0){
-alert("Slot already taken!");
-return;
-}
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
 
-// insert
-let result = await supabaseClient.from("volunteers").insert([
-{ name, day, time }
-]);
-
-if(result.error){
-alert("Error saving volunteer");
-return;
-}
-
+displayVolunteers();
 document.getElementById("name").value = "";
+}
+
+function removeVolunteer(index){
+let pass = prompt("Admin code to remove:");
+
+if(pass === null) return;
+
+if(pass.trim() !== ADMIN_PASSWORD){
+alert("Wrong code!");
+return;
+}
+
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+volunteers.splice(index,1);
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+
 displayVolunteers();
 }
 
-// REMOVE
-async function removeVolunteer(id){
-await supabaseClient.from("volunteers").delete().eq("id", id);
+function clearVolunteers(){
+let pass = prompt("Admin code to reset:");
+
+if(pass === null) return;
+
+if(pass.trim() !== ADMIN_PASSWORD){
+alert("Wrong code!");
+return;
+}
+
+let confirmReset = confirm("Clear all volunteers AND bookings?");
+if(!confirmReset) return;
+
+// 🔥 FIX: CLEAR BOTH
+localStorage.removeItem("studyBuddyVolunteers");
+localStorage.removeItem("studyBuddyBookings");
+
 displayVolunteers();
 }
 
-// RESET
-async function clearVolunteers(){
-await supabaseClient.from("volunteers").delete().neq("id", 0);
-displayVolunteers();
-}
-
-// 🔒 ADMIN PASSWORD
-function checkPassword(){
-let input = document.getElementById("adminPass").value;
-
-if(input === "alice123"){
-document.getElementById("resetBtn").style.display = "block";
-alert("Access granted");
-}else{
-alert("Wrong password");
-}
-}
 </script>
 
-</body>
-</html>
 
