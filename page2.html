@@ -7,8 +7,8 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- ✅ SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<!-- ✅ FIXED SUPABASE (IMPORTANT) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
 body{
@@ -185,12 +185,12 @@ font-size:12px;
 // 🔐 ADMIN
 const ADMIN_PASSWORD = "alice123";
 
-// ✅ YOUR SUPABASE
+// ✅ YOUR SUPABASE (ALREADY FILLED)
 const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
 const SUPABASE_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
 
-// ⚠️ IMPORTANT FIX (correct way to initialize)
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ✅ CORRECT INIT (THIS WAS YOUR MAIN ISSUE BEFORE)
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // DISPLAY
 async function displayVolunteers(){
@@ -200,11 +200,11 @@ let { data, error } = await supabaseClient
 .select("*");
 
 if(error){
-console.error(error);
+console.error("Supabase error:", error);
 return;
 }
 
-// sync to localStorage (for homepage)
+// 🔥 sync to localStorage for homepage
 localStorage.setItem("studyBuddyVolunteers", JSON.stringify(data || []));
 
 let listDiv = document.getElementById("list");
@@ -241,7 +241,7 @@ let { error } = await supabaseClient
 
 if(error){
 console.error(error);
-alert("Error saving");
+alert("Error saving to Supabase");
 return;
 }
 
@@ -252,6 +252,7 @@ document.getElementById("name").value = "";
 // REMOVE
 async function removeVolunteer(id){
 let pass = prompt("Admin code to remove:");
+
 if(pass !== ADMIN_PASSWORD){
 alert("Wrong code!");
 return;
@@ -268,6 +269,7 @@ displayVolunteers();
 // RESET
 async function clearVolunteers(){
 let pass = prompt("Admin code to reset:");
+
 if(pass !== ADMIN_PASSWORD){
 alert("Wrong code!");
 return;
@@ -276,13 +278,13 @@ return;
 let confirmReset = confirm("Clear all volunteers AND bookings?");
 if(!confirmReset) return;
 
-// delete all
+// 🔥 DELETE ALL FROM SUPABASE
 await supabaseClient
 .from("volunteers")
 .delete()
 .neq("id", 0);
 
-// clear local
+// 🔥 CLEAR LOCAL STORAGE
 localStorage.removeItem("studyBuddyVolunteers");
 localStorage.removeItem("studyBuddyBookings");
 
