@@ -84,7 +84,7 @@ font-weight:bold;
 </style>
 </head>
 
-<body>
+<body onload="loadBookings(); highlightAvailable(); updateBookingsWithVolunteers();">
 
 <header>
 <div class="logo">
@@ -101,7 +101,7 @@ font-weight:bold;
 
 <section class="hero">
 <h1>Study Buddy Portal</h1>
-<p>Book a peer study session</p>
+<p>Book a peer study session during break time</p>
 </section>
 
 <section class="booking-section">
@@ -121,20 +121,20 @@ font-weight:bold;
 
 <tr>
 <th>10:00-10:30</th>
-<td class="slot" onclick="book(this,'Monday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Tuesday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Wednesday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Thursday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Friday','10:00-10:30')"></td>
+<td class="slot" data-day="Monday" data-time="10:00-10:30" onclick="book(this)"></td>
+<td class="slot" data-day="Tuesday" data-time="10:00-10:30" onclick="book(this)"></td>
+<td class="slot" data-day="Wednesday" data-time="10:00-10:30" onclick="book(this)"></td>
+<td class="slot" data-day="Thursday" data-time="10:00-10:30" onclick="book(this)"></td>
+<td class="slot" data-day="Friday" data-time="10:00-10:30" onclick="book(this)"></td>
 </tr>
 
 <tr>
 <th>1:00-1:30</th>
-<td class="slot" onclick="book(this,'Monday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Tuesday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Wednesday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Thursday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Friday','1:00-1:30')"></td>
+<td class="slot" data-day="Monday" data-time="1:00-1:30" onclick="book(this)"></td>
+<td class="slot" data-day="Tuesday" data-time="1:00-1:30" onclick="book(this)"></td>
+<td class="slot" data-day="Wednesday" data-time="1:00-1:30" onclick="book(this)"></td>
+<td class="slot" data-day="Thursday" data-time="1:00-1:30" onclick="book(this)"></td>
+<td class="slot" data-day="Friday" data-time="1:00-1:30" onclick="book(this)"></td>
 </tr>
 
 </table>
@@ -144,115 +144,111 @@ font-weight:bold;
 <input type="password" id="adminPass" placeholder="Enter code">
 <button onclick="checkPassword()">Enter</button>
 
-<button id="resetBtn" onclick="resetBookings()" style="display:none; margin-top:20px;">Reset Bookings</button>
+<button id="resetBtn" onclick="resetBookings()" style="margin-top:20px; display:none;">Reset Bookings</button>
 
 </section>
 
-<!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-console.log("🔥 Supabase script loaded");
-
-// ✅ THIS FIXES GITHUB PAGES ISSUE
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Page loaded");
-  loadBookings();
+function saveBookings(){
+let data = [];
+document.querySelectorAll("td").forEach(cell=>{
+data.push({
+html: cell.innerHTML,
+day: cell.dataset.day,
+time: cell.dataset.time,
+class: cell.className
 });
-
-// LOAD BOOKINGS
-async function loadBookings(){
-
-let res1 = await supabaseClient.from("bookings").select("*");
-let res2 = await supabaseClient.from("volunteers").select("*");
-
-console.log("Bookings:", res1);
-console.log("Volunteers:", res2);
-
-if(res1.error || res2.error){
-document.getElementById("message").innerText = "⚠️ Database error - check console";
-return;
+});
+localStorage.setItem("studyBuddyBookings", JSON.stringify(data));
 }
 
-let bookings = res1.data || [];
-let volunteers = res2.data || [];
+function loadBookings(){
+let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
+let cells = document.querySelectorAll("td");
 
-// AVAILABLE
+cells.forEach((cell,index)=>{
+if(data[index]){
+cell.innerHTML = data[index].html;
+cell.className = data[index].class;
+}
+});
+}
+
+function resetBookings(){
+localStorage.removeItem("studyBuddyBookings");
+location.reload();
+}
+
+function highlightAvailable(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
 document.querySelectorAll("td.slot").forEach(cell=>{
-let onclick = cell.getAttribute("onclick");
-if(!onclick) return;
-
-let parts = onclick.match(/'(.*?)','(.*?)'/);
-let day = parts[1];
-let time = parts[2];
+let day = cell.dataset.day;
+let time = cell.dataset.time;
 
 let match = volunteers.find(v => v.day === day && v.time === time);
+
 if(match){
 cell.classList.add("available");
 }
 });
-
-// BOOKINGS
-bookings.forEach(b => {
-document.querySelectorAll("td").forEach(cell => {
-let onclick = cell.getAttribute("onclick");
-if(!onclick) return;
-
-let parts = onclick.match(/'(.*?)','(.*?)'/);
-let day = parts[1];
-let time = parts[2];
-
-if(b.day === day && b.time === time){
-cell.innerHTML = b.name + "<br>" + b.subject + "<br><b>Helper: " + (b.helper || "None") + "</b>";
-cell.classList.remove("slot");
-cell.classList.add("booked");
-}
-});
-});
-
 }
 
-// BOOK
-async function book(cell,day,time){
+function updateBookingsWithVolunteers(){
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+
+document.querySelectorAll("td.booked").forEach(cell=>{
+
+if(cell.innerHTML.includes("No volunteer available")){
+
+let day = cell.dataset.day;
+let time = cell.dataset.time;
+
+let match = volunteers.find(v => v.day === day && v.time === time);
+
+if(match){
+cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + match.name);
+saveBookings();
+}
+}
+
+});
+}
+
+function book(cell){
+
+let day = cell.dataset.day;
+let time = cell.dataset.time;
 
 if(cell.classList.contains("booked")){
-document.getElementById("message").innerText = "Already booked";
+document.getElementById("message").innerText = "This slot is already booked";
 return;
 }
+
+let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+let match = volunteers.find(v => v.day === day && v.time === time);
 
 let name = prompt("Enter your name and class");
 let subject = prompt("Enter subject");
 
-if(!name) return;
+if(name){
 
-let { data: volunteers } = await supabaseClient.from("volunteers").select("*");
-let match = volunteers.find(v => v.day === day && v.time === time);
-
-let helper = match ? match.name : null;
-
-let result = await supabaseClient.from("bookings").insert([
-{ name, subject, day, time, helper }
-]);
-
-if(result.error){
-alert("Error saving booking");
-return;
+if(match){
+cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
+document.getElementById("message").innerText = "Matched with " + match.name;
+}else{
+cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
+document.getElementById("message").innerText = "No volunteer available";
 }
 
-location.reload();
+cell.classList.remove("slot");
+cell.classList.add("booked");
+
+saveBookings();
+}
 }
 
-// RESET
-async function resetBookings(){
-await supabaseClient.from("bookings").delete().neq("id", 0);
-location.reload();
-}
-
-// PASSWORD
 function checkPassword(){
 let input = document.getElementById("adminPass").value;
 
