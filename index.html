@@ -39,16 +39,6 @@ text-align:center;
 padding:100px 20px;
 }
 
-.hero h1{
-font-size:50px;
-margin:0;
-}
-
-.hero p{
-margin-top:10px;
-font-size:18px;
-}
-
 .booking-section{
 background:white;
 padding:60px;
@@ -89,7 +79,7 @@ font-weight:bold;
 </style>
 </head>
 
-<body onload="loadBookings(); highlightAvailable(); updateBookingsWithVolunteers();">
+<body onload="initPage()">
 
 <header>
 <div class="logo">
@@ -113,7 +103,7 @@ font-weight:bold;
 
 <h2>Book a Study Session</h2>
 
-<table>
+<table id="table">
 
 <tr>
 <th>Time</th>
@@ -126,20 +116,20 @@ font-weight:bold;
 
 <tr>
 <th>10:00-10:30</th>
-<td class="slot" onclick="book(this,'Monday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Tuesday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Wednesday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Thursday','10:00-10:30')"></td>
-<td class="slot" onclick="book(this,'Friday','10:00-10:30')"></td>
+<td class="slot"></td>
+<td class="slot"></td>
+<td class="slot"></td>
+<td class="slot"></td>
+<td class="slot"></td>
 </tr>
 
 <tr>
 <th>1:00-1:30</th>
-<td class="slot" onclick="book(this,'Monday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Tuesday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Wednesday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Thursday','1:00-1:30')"></td>
-<td class="slot" onclick="book(this,'Friday','1:00-1:30')"></td>
+<td class="slot"></td>
+<td class="slot"></td>
+<td class="slot"></td>
+<td class="slot"></td>
+<td class="slot"></td>
 </tr>
 
 </table>
@@ -148,12 +138,41 @@ font-weight:bold;
 
 <input type="password" id="adminPass" placeholder="Enter code">
 <button onclick="checkPassword()">Enter</button>
-
-<button id="resetBtn" onclick="resetBookings()" style="margin-top:20px; display:none;">Reset Bookings</button>
+<button id="resetBtn" onclick="resetBookings()" style="display:none;">Reset</button>
 
 </section>
 
 <script>
+
+const days = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+const times = ["10:00-10:30","1:00-1:30"];
+
+// INIT PAGE (SAFE)
+function initPage(){
+attachClickEvents();
+loadBookings();
+highlightAvailable();
+updateBookingsWithVolunteers();
+}
+
+// ADD CLICK EVENTS (NO onclick parsing anymore)
+function attachClickEvents(){
+let rows = document.querySelectorAll("#table tr");
+
+for(let r=1; r<rows.length; r++){
+let cells = rows[r].children;
+
+for(let c=1; c<cells.length; c++){
+let cell = cells[c];
+let day = days[c-1];
+let time = times[r-1];
+
+cell.onclick = function(){
+book(cell, day, time);
+};
+}
+}
+}
 
 // SAVE
 function saveBookings(){
@@ -169,11 +188,11 @@ function loadBookings(){
 let data = JSON.parse(localStorage.getItem("studyBuddyBookings")) || [];
 let cells = document.querySelectorAll("td");
 
-cells.forEach((cell,index)=>{
-if(data[index]){
-cell.innerHTML = data[index];
-cell.classList.remove("slot");
+cells.forEach((cell,i)=>{
+if(data[i]){
+cell.innerHTML = data[i];
 cell.classList.add("booked");
+cell.classList.remove("slot");
 }
 });
 }
@@ -184,45 +203,47 @@ localStorage.removeItem("studyBuddyBookings");
 location.reload();
 }
 
-// 🔵 SHOW AVAILABLE VOLUNTEERS (SAFE FIX)
+// SHOW AVAILABLE
 function highlightAvailable(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 
-document.querySelectorAll("td.slot").forEach(cell=>{
+let rows = document.querySelectorAll("#table tr");
 
-let onclick = cell.getAttribute("onclick");
-if(!onclick) return;
+for(let r=1; r<rows.length; r++){
+let cells = rows[r].children;
 
-let parts = onclick.match(/'(.*?)','(.*?)'/);
-if(!parts) return;
+for(let c=1; c<cells.length; c++){
+let cell = cells[c];
+if(!cell.classList.contains("slot")) continue;
 
-let day = parts[1];
-let time = parts[2];
+let day = days[c-1];
+let time = times[r-1];
 
 let match = volunteers.find(v => v.day === day && v.time === time);
 
 if(match){
 cell.classList.add("available");
 }
-});
+}
+}
 }
 
-// 🔥 UPDATE BOOKINGS (SAFE FIX)
+// UPDATE BOOKINGS
 function updateBookingsWithVolunteers(){
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 
-document.querySelectorAll("td.booked").forEach(cell=>{
+let rows = document.querySelectorAll("#table tr");
 
-if(cell.innerHTML.includes("No volunteer available")){
+for(let r=1; r<rows.length; r++){
+let cells = rows[r].children;
 
-let onclick = cell.getAttribute("onclick");
-if(!onclick) return;
+for(let c=1; c<cells.length; c++){
+let cell = cells[c];
 
-let parts = onclick.match(/'(.*?)','(.*?)'/);
-if(!parts) return;
+if(cell.classList.contains("booked") && cell.innerHTML.includes("No volunteer available")){
 
-let day = parts[1];
-let time = parts[2];
+let day = days[c-1];
+let time = times[r-1];
 
 let match = volunteers.find(v => v.day === day && v.time === time);
 
@@ -231,36 +252,34 @@ cell.innerHTML = cell.innerHTML.replace("No volunteer available", "Helper: " + m
 saveBookings();
 }
 }
-
-});
+}
+}
 }
 
 // BOOK
 function book(cell,day,time){
 
 if(cell.classList.contains("booked")){
-document.getElementById("message").innerText = "This slot is already booked";
+document.getElementById("message").innerText = "Already booked";
 return;
 }
 
 let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
 let match = volunteers.find(v => v.day === day && v.time === time);
 
-let name = prompt("Enter your name and class");
+let name = prompt("Enter your name");
 let subject = prompt("Enter subject");
 
 if(name){
 
 if(match){
 cell.innerHTML = name + "<br>" + subject + "<br><b>Helper: " + match.name + "</b>";
-document.getElementById("message").innerText = "Matched with " + match.name;
 }else{
 cell.innerHTML = name + "<br>" + subject + "<br><b>No volunteer available</b>";
-document.getElementById("message").innerText = "No volunteer available";
 }
 
-cell.classList.remove("slot");
 cell.classList.add("booked");
+cell.classList.remove("slot");
 
 saveBookings();
 }
@@ -268,9 +287,7 @@ saveBookings();
 
 // PASSWORD
 function checkPassword(){
-let input = document.getElementById("adminPass").value;
-
-if(input === "alice123"){
+if(document.getElementById("adminPass").value === "alice123"){
 document.getElementById("resetBtn").style.display = "block";
 alert("Access granted");
 }else{
@@ -282,5 +299,6 @@ alert("Wrong password");
 
 </body>
 </html>
+
 
 
