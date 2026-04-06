@@ -7,6 +7,9 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
 
+<!-- ✅ SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <style>
 body{
 margin:0;
@@ -179,22 +182,42 @@ font-size:12px;
 
 <script>
 
+// 🔐 ADMIN
 const ADMIN_PASSWORD = "alice123";
 
+// ✅ YOUR SUPABASE
+const SUPABASE_URL = "https://aaspzzucirsjwhmfgrva.supabase.co";
+const SUPABASE_KEY = "sb_publishable_gAMryTLf7AknfaUo2_2lFA_jHjTYuH2";
+
+// ⚠️ IMPORTANT FIX (correct way to initialize)
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // DISPLAY
-function displayVolunteers(){
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
+async function displayVolunteers(){
+
+let { data, error } = await supabaseClient
+.from("volunteers")
+.select("*");
+
+if(error){
+console.error(error);
+return;
+}
+
+// sync to localStorage (for homepage)
+localStorage.setItem("studyBuddyVolunteers", JSON.stringify(data || []));
+
 let listDiv = document.getElementById("list");
 listDiv.innerHTML = "";
 
-volunteers.forEach((v,index)=>{
+(data || []).forEach((v)=>{
 let card = document.createElement("div");
 card.className = "card";
 
 card.innerHTML = `
 <b>${v.name}</b><br>
 <span class="badge">${v.day} • ${v.time}</span><br>
-<button class="remove-btn" onclick="removeVolunteer(${index})">Remove</button>
+<button class="remove-btn" onclick="removeVolunteer(${v.id})">Remove</button>
 `;
 
 listDiv.appendChild(card);
@@ -202,7 +225,7 @@ listDiv.appendChild(card);
 }
 
 // ADD
-function addVolunteer(){
+async function addVolunteer(){
 let name = document.getElementById("name").value.trim();
 let day = document.getElementById("day").value;
 let time = document.getElementById("time").value;
@@ -212,41 +235,40 @@ alert("Please enter your name");
 return;
 }
 
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-volunteers.push({name, day, time});
+let { error } = await supabaseClient
+.from("volunteers")
+.insert([{ name, day, time }]);
 
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+if(error){
+console.error(error);
+alert("Error saving");
+return;
+}
 
 displayVolunteers();
 document.getElementById("name").value = "";
 }
 
 // REMOVE
-function removeVolunteer(index){
+async function removeVolunteer(id){
 let pass = prompt("Admin code to remove:");
-
-if(pass === null) return;
-
-if(pass.trim() !== ADMIN_PASSWORD){
+if(pass !== ADMIN_PASSWORD){
 alert("Wrong code!");
 return;
 }
 
-let volunteers = JSON.parse(localStorage.getItem("studyBuddyVolunteers")) || [];
-volunteers.splice(index,1);
-
-localStorage.setItem("studyBuddyVolunteers", JSON.stringify(volunteers));
+await supabaseClient
+.from("volunteers")
+.delete()
+.eq("id", id);
 
 displayVolunteers();
 }
 
-// 🔥 FIXED RESET (IMPORTANT)
-function clearVolunteers(){
+// RESET
+async function clearVolunteers(){
 let pass = prompt("Admin code to reset:");
-
-if(pass === null) return;
-
-if(pass.trim() !== ADMIN_PASSWORD){
+if(pass !== ADMIN_PASSWORD){
 alert("Wrong code!");
 return;
 }
@@ -254,7 +276,13 @@ return;
 let confirmReset = confirm("Clear all volunteers AND bookings?");
 if(!confirmReset) return;
 
-// CLEAR BOTH (THIS WAS YOUR MAIN ISSUE)
+// delete all
+await supabaseClient
+.from("volunteers")
+.delete()
+.neq("id", 0);
+
+// clear local
 localStorage.removeItem("studyBuddyVolunteers");
 localStorage.removeItem("studyBuddyBookings");
 
@@ -265,5 +293,4 @@ displayVolunteers();
 
 </body>
 </html>
-
 
